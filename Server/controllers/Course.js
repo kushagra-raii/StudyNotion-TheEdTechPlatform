@@ -6,8 +6,17 @@ require("dotenv").config();
 
 exports.createCourse = async (req, res) => {
   try {
-    const { courseName, courseDescription, whatYouWillLearn, price, category } =
-      req.body;
+    const userId = req.user.id;
+    const {
+      courseName,
+      courseDescription,
+      whatYouWillLearn,
+      price,
+      tag,
+      category,
+      status,
+      instructions,
+    } = req.body;
     const thumbnail = req.files.thumbnailImage;
 
     if (
@@ -15,16 +24,22 @@ exports.createCourse = async (req, res) => {
       !courseDescription ||
       !whatYouWillLearn ||
       !price ||
-      !category
+      !category ||
+      !tag ||
+      !thumbnail
     ) {
       return res.status(400).json({
         success: false,
         message: "All fields are mandatory",
       });
     }
+    if (!status || status === undefined) {
+      status = "Draft";
+    }
 
-    const userId = req.user.id;
-    const instructorDetails = await User.findById(userId);
+    const instructorDetails = await User.findById(userId, {
+      accountType: "Instructor",
+    });
 
     if (!instructorDetails) {
       return res.status(404).json({
@@ -52,8 +67,11 @@ exports.createCourse = async (req, res) => {
       instructor: instructorDetails,
       whatYouWillLearn: whatYouWillLearn,
       price,
+      tag: tag,
       category: categoryDetails._id,
       thumbnail: thumbnailImage.secure_url,
+      status: status,
+      instructions: instructions,
     });
 
     await User.findByIdAndUpdate(
@@ -65,8 +83,15 @@ exports.createCourse = async (req, res) => {
       },
       { new: true }
     );
-
-    //TODO: update category schema
+    await Category.findByIdAndUpdate(
+      { _id: category },
+      {
+        $push: {
+          course: newCourse._id,
+        },
+      },
+      { new: true }
+    );
 
     return res.status(200).json({
       success: true,
@@ -128,19 +153,19 @@ exports.getCourseDetails = async (req, res) => {
       })
       .exec();
 
-      if(!courseDetails){
-        return res.status(400).json({
-          success: false,
-          message: `Could not find the course with ${courseId}`,
-        });
-      }
-      return res.status(200).json({
-        success: true,
-        message: "Course Details fetched successfully",
-        data:courseDetails,
+    if (!courseDetails) {
+      return res.status(400).json({
+        success: false,
+        message: `Could not find the course with ${courseId}`,
       });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Course Details fetched successfully",
+      data: courseDetails,
+    });
   } catch (error) {
-    console.error(error)
+    console.error(error);
     return res.status(500).json({
       success: false,
       message: error.message,

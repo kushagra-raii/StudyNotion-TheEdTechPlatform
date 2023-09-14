@@ -100,7 +100,7 @@ exports.signUp = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(1);
 
-    if (recentOtp.length == 0) {
+    if (recentOtp.length === 0) {
       return res.status(400).json({
         success: false,
         message: "Otp not found",
@@ -113,6 +113,9 @@ exports.signUp = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    let approved = "";
+    approved === "Instructor" ? (approved = false) : (approved = true);
 
     const profileDetails = await Profile.create({
       gender: null,
@@ -128,6 +131,7 @@ exports.signUp = async (req, res) => {
       contactNumber,
       password: hashedPassword,
       accountType,
+      approved: approved,
       additionalDetails: profileDetails._id,
       image: `http://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
     });
@@ -171,7 +175,7 @@ exports.logIn = async (req, res) => {
         accountType: user.accountType,
       };
       const token = jwt.sign(payload, process.env.JWT_Secret, {
-        expiresIn: "2h",
+        expiresIn: "24h",
       });
       user.token = token;
       user.password = undefined;

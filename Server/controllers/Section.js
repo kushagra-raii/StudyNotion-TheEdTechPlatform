@@ -22,7 +22,14 @@ exports.createSection = async (req, res) => {
         },
       },
       { new: true }
-    );
+    )
+      .populate({
+        path: "courseContent",
+        populate: {
+          path: "subSection",
+        },
+      })
+      .exec();
     return res.status(200).json({
       success: true,
       message: "Section created successfully",
@@ -56,6 +63,7 @@ exports.updateSection = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Section updated successfully",
+      section,
     });
   } catch (error) {
     console.error(error);
@@ -68,13 +76,13 @@ exports.updateSection = async (req, res) => {
 
 exports.deleteSection = async (req, res) => {
   try {
-    const {sectionId} = req.params
+    const { sectionId } = req.params;
 
-    await Section.findByIdAndDelete({sectionId});
+    await Section.findByIdAndDelete({ sectionId });
     return res.status(200).json({
-        success: true,
-        message: "Section deleted successfully",
-      });
+      success: true,
+      message: "Section deleted successfully",
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({
